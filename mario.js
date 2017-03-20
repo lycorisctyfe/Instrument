@@ -1,5 +1,5 @@
 /**
- * @file 超级马里奥
+ * @file 超级马里奥  
  * @author BenzLeung(https://github.com/BenzLeung)
  * @date 2017/3/20
  * Created by JetBrains PhpStorm.
@@ -30,10 +30,10 @@ var playMario = function () {
     var ins = new Instrument({
         pitch: 'E5',
         frequency: 650,
-        volume: 0.6,
+        volume: 0.9,
         oscillatorType: 'square',
         isFadeOut : 1,
-        fadeOutPlayMode : 'stop'
+        fadeOutPlayMode : 'play'
     });
     for (var i = 0, len = music.length; i < len; i ++) {
         setTimeout((function (x) {
@@ -43,8 +43,8 @@ var playMario = function () {
                     ins.play({pitch: music[x]});
                 }
             };
-        })(i), 200 * i);
-    }
+        })(i), 1000 * i);
+    } 
 };
 
 playMario();

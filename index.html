@@ -16,12 +16,12 @@
         volume: 0.9,
         oscillatorType: 'square',
         isFadeOut: 1,
-        fadeOutPlayMode: 'stop'
+        fadeOutPlayMode: 'play'
     };
     var ins = new Instrument(opt);
 
 
-    /*document.onkeydown = function (e) {
+    document.onkeydown = function (e) {
         if (e && e.keyCode === 13) {
             //{pitch: 'Db5'}
             ins.play();
@@ -31,6 +31,6 @@
         if (e && e.keyCode === 13) {
             ins.stop();
         }
-    };*/
+    };
 </script>
 </html>

@@ -12,6 +12,8 @@
         var _this = this;
         _this.oscillator = null;
         _this.gainNode = null;
+        _this.compressor = ctx.createDynamicsCompressor();
+        _this.compressor.connect(ctx.destination);
 
         /**
          * 初始化参数 从Instrument(option)
@@ -59,12 +61,11 @@
          * @returns {*}
          */
         _this.setVolume = function (opt) {
-            // _this.gainNode = ctx.createGain();
             _this.gainNode.gain.value = opt.volume;
             if (opt.isFadeOut && opt.fadeOutPlayMode === 'play') {
-                _this.changeVolume(0.05, 80);
+                _this.linearRampToValueAtTime(1);
             } else if (opt.isFadeOut && opt.fadeOutPlayMode === 'stop') {
-                _this.changeVolume(0.05, 80);
+                _this.linearRampToValueAtTime(1);
             }
         };
 
@@ -72,9 +73,7 @@
          *  连接 oscillator + gainNode
          */
         _this.getNodesMix = function () {
-            var compressor = ctx.createDynamicsCompressor();
-            audioNode = _this.gainNode.connect(compressor);
-            audioNode.connect(ctx.destination);
+            _this.gainNode.connect(_this.compressor);
         };
 
         /**
@@ -101,7 +100,6 @@
                 console.log("您的浏览器不支持web audio api,请换个姿势试试~");
                 return false;
             }
-
             var playOptions = opt ? _this.resetFuncInstrumentOption(opt) : _this.deepCopy(_this.instrumentOption);
             if (!_this.oscillator) {
                 _this.oscillator = ctx.createOscillator();   // 振荡器
@@ -117,74 +115,40 @@
                 _this.gainNode = ctx.createGain();
                 _this.setVolume(playOptions);
                 _this.oscillator.connect(_this.gainNode);
-                _this.getNodesMix();
+                _this.gainNode.connect(_this.compressor);
             }
 
         };
 
-
+        /**
+         * stop 停止
+         * @param opt
+         */
         _this.stop = function (opt) {
             if (_this.oscillator) {
                 var playOptions = opt ? _this.resetFuncInstrumentOption(opt) : _this.deepCopy(_this.instrumentOption);
                 if (playOptions.isFadeOut && playOptions.fadeOutPlayMode === 'stop') {
                     _this.setVolume(playOptions);
                 } else {
-                    playOptions.isFadeOut = 0;
-                    playOptions.fadeOutPlayMode = 'default';
-                    _this.oscillator.stop(ctx.currentTime);
-                    _this.oscillator = null;
-                }
-
-            }
-
-        };
-        /**
-         * 控制声音的播放 渐入、渐出
-         */
-        _this.changePitchMode = function (opt) {
-            // fadeOut 声音渐出有两种方式:
-            // play 播放的时候按照一定的时长淡出声音；
-            // stop 停止声音播放的时候不立即停止 而在松手慢慢淡出声音
-            if (opt.isFadeOut && opt.fadeOutPlayMode === 'play') {
-                _this.changeFrequency(10, 100);
-            } else if (opt.isFadeOut && opt.fadeOutPlayMode == 'stop') {
-                _this.changeFrequency(10, 10);
-            }
-        };
-
-        /**
-         * 控制频率的变化
-         */
-        _this.changeFrequency = function (step, time) {
-            var timer = null;
-            timer = setInterval(function () {
-                if (_this.oscillator && _this.oscillator.frequency.value > 0) {
-                    _this.oscillator.frequency.value -= step;
-                } else if (_this.oscillator && _this.oscillator.frequency.value <= 0) {
-                    _this.oscillator.stop(ctx.currentTime);
-                    //_this.oscillator.frequency.value = 0;
-                    _this.oscillator = null;
-                    clearInterval(timer);
-                }
-            }, time);
-        };
-
-        /**
-         * 控制声音的变化
-         */
-        _this.changeVolume = function (step, time) {
-            var timer = null;
-            timer = setInterval(function () {
-                if (_this.gainNode && _this.gainNode.gain.value > 0) {
-                    _this.gainNode.gain.value -= step;
-                } else if (_this.oscillator && _this.gainNode.gain.value <= 0) {
                     _this.gainNode.gain.value = 0;
                     _this.oscillator.stop(ctx.currentTime);
-                    _this.oscillator = null;
-                    clearInterval(timer);
                 }
-            }, time);
+                _this.oscillator = null;
+                //clearInterval(timer);
+            }
+
         };
+
+        /**
+         * 线性变化时间
+         * @param duringTime
+         */
+        _this.linearRampToValueAtTime = function (duringTime) {
+            _this.gainNode.gain.setValueAtTime(_this.gainNode.gain.value, ctx.currentTime);
+            _this.gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + duringTime);
+        };
+
+
 
         /**
          * 对象深拷贝
@@ -200,6 +164,7 @@
             }
             return result;
         };
+        
 
         return _this;
     };
