@@ -11,6 +11,7 @@
     var Instrument = function (option) {
         var _this = this;
         _this.oscillator = null;
+        _this.gainNode = ctx.createGain();
 
         /**
          * 初始化参数 从Instrument(option)
@@ -22,8 +23,8 @@
             oscillatorType: ['sine', 'square', 'sawtooth', 'triangle'].indexOf(option.oscillatorType) > -1 ? option.oscillatorType : 'square',
             volume: option.volume > 0 && option.volume <= 1 ? option.volume : '0.5',
             isFadeOut: option.isFadeOut ? 1 : 0,
-            isFadeIn : option.isFadeIn ? 1 : 0,
-            fadeOutPlayMode : ['play', 'stop'].indexOf(option.fadeOutPlayMode) > -1 ? option.fadeOutPlayMode : 'default'
+            isFadeIn: option.isFadeIn ? 1 : 0,
+            fadeOutPlayMode: ['play', 'stop'].indexOf(option.fadeOutPlayMode) > -1 ? option.fadeOutPlayMode : 'default'
         };
 
         /**
@@ -31,7 +32,7 @@
          * @param resetOpt
          */
         _this.resetFuncInstrumentOption = function (resetOpt) {
-            var funcInstrumentOption = _this.instrumentOption;
+            var funcInstrumentOption = _this.deepCopy(_this.instrumentOption);
             for (var i in resetOpt) {
                 if (resetOpt.hasOwnProperty(i)) {
                     funcInstrumentOption[i] = resetOpt[i];
@@ -57,24 +58,23 @@
          * 音量控制
          * @returns {*}
          */
-        _this.setVolume = function () {
-            var gainNode = ctx.createGain();
-            gainNode.gain.value = _this.instrumentOption.volume;
-            return gainNode;
+        _this.setVolume = function (opt) {
+            // _this.gainNode = ctx.createGain();
+            _this.gainNode.gain.value = opt.volume;
+            if (opt.isFadeOut && opt.fadeOutPlayMode === 'play') {
+                _this.changeVolume(0.05, 80);
+            } else if (opt.isFadeOut && opt.fadeOutPlayMode === 'stop') {
+                _this.changeVolume(0.05, 80);
+            }
         };
 
         /**
-         *  连接audioNodes
+         *  连接 oscillator + gainNode
          */
         _this.getNodesMix = function () {
-            var audioNodes = arguments;
             var compressor = ctx.createDynamicsCompressor();
-            var gainNode = _this.setVolume();
-            for (var i in audioNodes) {
-                audioNodes[i].connect(compressor);
-            }
-            gainNode = compressor.connect(gainNode);
-            gainNode.connect(ctx.destination);
+            audioNode = _this.gainNode.connect(compressor);
+            audioNode.connect(ctx.destination);
         };
 
         /**
@@ -102,30 +102,38 @@
                 return false;
             }
 
-            var playOptions = opt ? _this.resetFuncInstrumentOption(opt) : _this.instrumentOption;
+            var playOptions = opt ? _this.resetFuncInstrumentOption(opt) : _this.deepCopy(_this.instrumentOption);
             if (!_this.oscillator) {
-                console.log(playOptions);
                 _this.oscillator = ctx.createOscillator();   // 振荡器
                 _this.oscillator.type = playOptions.oscillatorType;
                 _this.oscillator.frequency.value = _this.getRealFrequencyByPitch(playOptions);
                 _this.oscillator.start();
-                _this.getNodesMix(_this.oscillator);
-                if (playOptions.isFadeOut && playOptions.fadeOutPlayMode === 'play') {
-                    _this.changePitchMode(playOptions);
+
+                // 控制声音的变化方式
+                if (!(playOptions.isFadeOut && playOptions.fadeOutPlayMode === 'play')) {
+                    playOptions.isFadeOut = 0;
+                    playOptions.fadeOutPlayMode = 'default';
                 }
+                _this.setVolume(playOptions);
+                _this.oscillator.connect(_this.gainNode);
+                _this.getNodesMix();
             }
 
         };
 
+
         _this.stop = function (opt) {
             if (_this.oscillator) {
-                opt = opt ? _this.resetFuncInstrumentOption(opt) : _this.instrumentOption;
-                if (opt.isFadeOut && opt.fadeOutPlayMode === 'stop') {
-                    _this.changePitchMode(opt);
+                var playOptions = opt ? _this.resetFuncInstrumentOption(opt) : _this.deepCopy(_this.instrumentOption);
+                if (playOptions.isFadeOut && playOptions.fadeOutPlayMode === 'stop') {
+                    _this.setVolume(playOptions);
                 } else {
+                    playOptions.isFadeOut = 0;
+                    playOptions.fadeOutPlayMode = 'default';
                     _this.oscillator.stop(ctx.currentTime);
                     _this.oscillator = null;
                 }
+
             }
 
         };
@@ -160,6 +168,38 @@
             }, time);
         };
 
+        /**
+         * 控制声音的变化
+         */
+        _this.changeVolume = function (step, time) {
+            var timer = null;
+            timer = setInterval(function () {
+                if (_this.gainNode && _this.gainNode.gain.value > 0) {
+                    _this.gainNode.gain.value -= step;
+                } else if (_this.oscillator && _this.gainNode.gain.value <= 0) {
+                    _this.gainNode.gain.value = 0;
+                    _this.oscillator.stop(ctx.currentTime);
+                    _this.oscillator = null;
+                    clearInterval(timer);
+                }
+            }, time);
+        };
+
+        /**
+         * 对象深拷贝
+         * @param source
+         * @returns {{}}
+         */
+        _this.deepCopy = function (source) {
+            var result = {};
+            for (var key in source) {
+                if (source.hasOwnProperty(key)) {
+                    result[key] = typeof source[key] === 'object' ? deepCopy(source[key]) : source[key];
+                }
+            }
+            return result;
+        };
+
         return _this;
     };
 
@@ -168,12 +208,12 @@
 
     // oscillator值  sine/square/锯齿波 sawtooth/三角波 triangle/custom(setPeriodicWave())
     var opt = {
-        pitch: 'B5',
+        pitch: 'G4',
         frequency: 400,
         volume: 0.9,
         oscillatorType: 'square',
-        isFadeOut : true,
-        fadeOutPlayMode : 'play'
+        isFadeOut: 1,
+        fadeOutPlayMode: 'stop'
     };
     var ins = new Instrument(opt);
 
