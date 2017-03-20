@@ -11,7 +11,7 @@
     var Instrument = function (option) {
         var _this = this;
         _this.oscillator = null;
-        _this.gainNode = ctx.createGain();
+        _this.gainNode = null;
 
         /**
          * 初始化参数 从Instrument(option)
@@ -114,6 +114,7 @@
                     playOptions.isFadeOut = 0;
                     playOptions.fadeOutPlayMode = 'default';
                 }
+                _this.gainNode = ctx.createGain();
                 _this.setVolume(playOptions);
                 _this.oscillator.connect(_this.gainNode);
                 _this.getNodesMix();
@@ -204,30 +205,22 @@
     };
 
 
+    /**
+     *  摘录https://github.com/BenzLeung
+     */
+    if (typeof module !== 'undefined' && typeof exports === 'object') {
+        module.exports = Instrument;
+    } else if (typeof define === 'function' && define.amd) {
+        define(function() {
+            return Instrument;
+        });
+    } else {
+        window.Instrument = Instrument;
+    }
+
     // 测试数据
 
     // oscillator值  sine/square/锯齿波 sawtooth/三角波 triangle/custom(setPeriodicWave())
-    var opt = {
-        pitch: 'G4',
-        frequency: 400,
-        volume: 0.9,
-        oscillatorType: 'square',
-        isFadeOut: 1,
-        fadeOutPlayMode: 'stop'
-    };
-    var ins = new Instrument(opt);
-
-
-    document.onkeydown = function (e) {
-        if (e && e.keyCode === 13) {
-            //{pitch: 'Db5'}
-            ins.play();
-        }
-    };
-    document.onkeyup = function (e) {
-        if (e && e.keyCode === 13) {
-            ins.stop();
-        }
-    };
+    
 
 })();
