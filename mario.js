@@ -43,7 +43,7 @@ var playMario = function () {
                     ins.play({pitch: music[x]});
                 }
             };
-        })(i), 1000 * i);
+        })(i), 500 * i);
     } 
 };
 

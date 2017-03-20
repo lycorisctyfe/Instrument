@@ -134,7 +134,6 @@
                     _this.oscillator.stop(ctx.currentTime);
                 }
                 _this.oscillator = null;
-                //clearInterval(timer);
             }
 
         };
@@ -164,7 +163,7 @@
             }
             return result;
         };
-        
+
 
         return _this;
     };
@@ -182,10 +181,5 @@
     } else {
         window.Instrument = Instrument;
     }
-
-    // 测试数据
-
-    // oscillator值  sine/square/锯齿波 sawtooth/三角波 triangle/custom(setPeriodicWave())
-    
 
 })();
